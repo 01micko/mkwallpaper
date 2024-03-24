@@ -13,7 +13,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
  * MA 02110-1301, USA.
- * (c)2015 - 2017 Michael Amadio. Gold Coast QLD, Australia 01micko@gmail.com
+ * (c)2015 - 2024 Michael Amadio. Gold Coast QLD, Australia 01micko@gmail.com
  */
  
  
@@ -28,7 +28,7 @@
 #include <pango/pangocairo.h>
 
 #define PROG "mkwallpaper"
-#define THIS_VERSION "0.11"
+#define THIS_VERSION "0.12"
 
 void usage(){
 	printf("%s-%s\n\n", PROG , THIS_VERSION);
@@ -48,7 +48,7 @@ void usage(){
 	printf("\t-e [string] : '/path/to/icon.png x y' - embed a png image at position\n\t(optional)\n");
 	printf("\t-w [string] : '/path/to/background.png' - embed a png wall at pos 0,0\n\t(optional)\n");
 	printf("\t Requires original dimensions of incoming png image for '-x' and '-y'\n");
-	printf("\t-j [tl|bl|tr|br|cl|cr] : (default - br [bottom-right])\n");
+	printf("\t-j [x y] : font position in px\n");
 	printf("\t-z [\"float float float\"] floating point RGB, quoted,\n"
 					"\tspace delimited values for colour\n"
 					"\t(mandatory!) eg: -z \"0.1 0.2 0.3\"\n");
@@ -58,6 +58,7 @@ void usage(){
 	printf("\t-d [/path/to/directory] destination directory: (default: $HOME)\n");
 	printf("\t-b [string] font-style: accepted values are \"n\" (normal) [the default],\n"
 					"\t\"b\" (bold), \"i\" (italic), \"o\" (bold-italic).\n");
+	printf("\t-u \"yes\" : use transparent background (not good for wallpapers)\n");
 	printf("\t-h : show this help and exit.\n");
 	printf("\t-v : show version and exit.\n");
 	exit (EXIT_SUCCESS);
@@ -104,7 +105,8 @@ static void paint_img (const char *label,
 						int align,
 						char *style,
 						char *eicon,
-						char *wall) {
+						char *wall,
+						char *trans) {
 	
 	char icon[PATH_MAX];
 	char icon_pre[PATH_MAX];
@@ -243,6 +245,10 @@ static void paint_img (const char *label,
 		glob.background = cairo_image_surface_create_from_png(wall);
 		cairo_set_source_surface(c, glob.background, 0, 0);
 		cairo_paint(c);
+	} else if (strncmp(trans, "yes", 3) == 0) {
+		cairo_set_source_rgba(c, 0, 0, 0, 0);
+		cairo_rectangle(c, 0.0, 0.0, wdth, hght);
+		cairo_fill(c);
 	} else {
 		cairo_rectangle(c, 0.0, 0.0, wdth, hght);
 		cairo_pattern_t *linear = cairo_pattern_create_linear(angle * wdth / 20, 0, wdth / 2, hght);
@@ -276,14 +282,35 @@ static void paint_img (const char *label,
 		cairo_paint(c);
 	}
 	/* position of text */
-	float xposi = wdth / 2;
-	float yposi = 4 * hght / 7;
-	if ((strcmp(jposi, "tl") == 0) || (strcmp(jposi, "bl") == 0) || (strcmp(jposi, "cl") == 0))
-		xposi = wdth / 6;
-	if ((strcmp(jposi, "tl") == 0) || (strcmp(jposi, "tr") == 0))
-		yposi = hght / 6;
-	if ((strcmp(jposi, "cl") == 0) || (strcmp(jposi, "cr") == 0))
+	int xposi, yposi;
+	if (jposi != NULL) {	
+		char prex[8];
+		char prey[8];
+		int font_pos = sscanf(jposi, "%s %s", prex, prey);
+		if (font_pos < 2) {
+			fprintf(stderr,"ERROR: x and y positions are required\n");
+			exit (EXIT_FAILURE);
+		}
+		if (font_pos > 2) {
+			fprintf(stderr,"ERROR: too many args\n");
+			exit (EXIT_FAILURE);
+		}
+		xposi = atoi(prex);
+		yposi = atoi(prey);
+	} else { /* fallback */
+		xposi = wdth / 2;
 		yposi = 3 * hght / 7;
+	}
+	
+	
+	//float xposi = wdth / 2;
+	//float yposi = 4 * hght / 7;
+	//if ((strcmp(jposi, "tl") == 0) || (strcmp(jposi, "bl") == 0) || (strcmp(jposi, "cl") == 0))
+		//xposi = wdth / 6;
+	//if ((strcmp(jposi, "tl") == 0) || (strcmp(jposi, "tr") == 0))
+		//yposi = hght / 6;
+	//if ((strcmp(jposi, "cl") == 0) || (strcmp(jposi, "cr") == 0))
+		//yposi = 3 * hght / 7;
 	
 	cairo_move_to(c, xposi , 1 * yposi);
 	if (fontcol == 1)
@@ -340,7 +367,7 @@ int main(int argc, char **argv) {
 	char *wvalue = NULL; /* embedded background */
 	char *kvalue = "no";
 	char *grvalue = "yes";
-	char *jvalue = "br";
+	char *jvalue = NULL;
 	int gvalue = 0;
 	char *dvalue = getenv("HOME");
 	double ovalue = 0.65;
@@ -349,8 +376,9 @@ int main(int argc, char **argv) {
 	int font_size = 20;
 	unsigned int ivalue = 0;
 	char *bvalue = "n";
+	char *uvalue = "no";
 	int c;
-	while ((c = getopt (argc, argv, "l:n:f:p:x:y:d:z:o:a:i:k:g:j:s:b:e:w:hv")) != -1) {
+	while ((c = getopt (argc, argv, "l:n:f:p:x:y:d:z:o:a:i:k:g:j:s:b:e:w:u:hv")) != -1) {
 		switch (c)
 		{
 			case 'l':
@@ -408,6 +436,9 @@ int main(int argc, char **argv) {
 				wvalue = optarg;
 				gvalue = 1;
 				break;
+			case 'u':
+				uvalue = optarg;
+				break;
 			case 'h':
 				hflag = 1;
 				if (hflag == 1) usage();
@@ -420,14 +451,9 @@ int main(int argc, char **argv) {
 				usage();
 		}
 	}
-	if (zvalue == NULL) {
-		fprintf(stderr, "You must have 3 floating point value arguments to \"-z\"\n");
-		usage();
-		return 1;
-	}
 	paint_img(lvalue, nvalue, fvalue, pvalue,
 					width, height, zvalue, font_size, ovalue, avalue,
-					 kvalue, grvalue, jvalue, gvalue, dvalue, ivalue, bvalue, evalue, wvalue);
+					 kvalue, grvalue, jvalue, gvalue, dvalue, ivalue, bvalue, evalue, wvalue, uvalue);
 	return 0;
 }
 
