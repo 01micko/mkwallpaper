@@ -28,7 +28,7 @@
 #include <pango/pangocairo.h>
 
 #define PROG "mkwallpaper"
-#define THIS_VERSION "0.12"
+#define THIS_VERSION "0.13"
 
 void usage(){
 	printf("%s-%s\n\n", PROG , THIS_VERSION);
@@ -301,17 +301,7 @@ static void paint_img (const char *label,
 		xposi = wdth / 2;
 		yposi = 3 * hght / 7;
 	}
-	
-	
-	//float xposi = wdth / 2;
-	//float yposi = 4 * hght / 7;
-	//if ((strcmp(jposi, "tl") == 0) || (strcmp(jposi, "bl") == 0) || (strcmp(jposi, "cl") == 0))
-		//xposi = wdth / 6;
-	//if ((strcmp(jposi, "tl") == 0) || (strcmp(jposi, "tr") == 0))
-		//yposi = hght / 6;
-	//if ((strcmp(jposi, "cl") == 0) || (strcmp(jposi, "cr") == 0))
-		//yposi = 3 * hght / 7;
-	
+	 /* font effect */
 	cairo_move_to(c, xposi , 1 * yposi);
 	if (fontcol == 1)
 		cairo_set_source_rgba(c, rf, rf, rf, 0.6);
@@ -320,8 +310,11 @@ static void paint_img (const char *label,
 		
 	pango_cairo_show_layout (c, layout);
 	
+	
 	if (fc == 1) {
-		cairo_move_to(c, xposi - 1.5 , (1 * yposi) - 1.2);
+		float fz = (float)f_size;
+		fz = f_size / 30; /* 30 default font size*/
+		cairo_move_to(c, xposi - (0.75 * fz) , (1 * yposi) - (0.6 * fz));
 		cairo_set_source_rgba(c, or, og, ob, 0.65);
 		pango_cairo_show_layout (c, layout);
 	}
@@ -373,7 +366,7 @@ int main(int argc, char **argv) {
 	double ovalue = 0.65;
 	int avalue = 10;
 	int width = 200; int height = 60;
-	int font_size = 20;
+	int font_size = 30;
 	unsigned int ivalue = 0;
 	char *bvalue = "n";
 	char *uvalue = "no";
