@@ -28,7 +28,7 @@
 #include <pango/pangocairo.h>
 
 #define PROG "mkwallpaper"
-#define THIS_VERSION "0.13"
+#define THIS_VERSION "0.14"
 
 void usage(){
 	printf("%s-%s\n\n", PROG , THIS_VERSION);
@@ -36,7 +36,7 @@ void usage(){
 	printf("Usage :\n");
 	printf("%s [-l,-n,-f,-p,-s,-x,-y,-r,-d,-j,-k,-z,-o,-a,-b,-h,-e,-w]\n", PROG);
 	printf("\t-n [string] image file name\n");
-	printf("\t-l [string] label for an image, up to 36 chars\n");
+	printf("\t-l [string] label for an image, up to 36 chars\t(optional)\n");
 	printf("\t-f [string] a TTF font family\n");
 	printf("\t-i [\"0|1|2\"] integer from 0 - 2 to align text left, centre or right\n");
 	printf("\t-p [\"png|svg\"] \"png\" or \"svg\" format\n");
@@ -145,12 +145,6 @@ static void paint_img (const char *label,
 	if ((align < 0) || (align > 2))
 		align = 0; /* counter silly input */
 	if (!fp_color) exit (EXIT_FAILURE);
-
-	int msg_len = strlen(label);
-	if (msg_len > 36) {
-		fprintf(stderr,"\"%s\" is too long!\n", label);
-		exit (EXIT_FAILURE);
-	}
 	
 	/* error check angle/offset */
 	if ((angle < 0) || (angle > 20)) {
@@ -161,13 +155,6 @@ static void paint_img (const char *label,
 		fprintf(stderr, "%f is out of range. Must be 0.00 - 1.00 inclusive\n", offset);
 		exit(EXIT_FAILURE);
 	}
-	
-	/*font style*/
-	int boldness; int styleness;
-	if (strncmp(style, "b", 1) == 0) { boldness = PANGO_WEIGHT_BOLD; styleness = PANGO_STYLE_NORMAL;}
-	else if (strncmp(style, "i", 1) == 0) { boldness = PANGO_WEIGHT_NORMAL; styleness = PANGO_STYLE_OBLIQUE;}
-	else if (strncmp(style, "o", 1) == 0) { boldness = PANGO_WEIGHT_BOLD; styleness = PANGO_STYLE_OBLIQUE;}
-	else { boldness = PANGO_WEIGHT_NORMAL; styleness = PANGO_STYLE_NORMAL;} /*catch garbage and default to 'normal'*/
 
 	float r, g , b;
 	char red[8];
@@ -208,23 +195,6 @@ static void paint_img (const char *label,
 		r1 = r; g1 = g; b1 = b; r2 = r; g2 = g; b2 = b;
 	}
 	
-	/* font color */
-	float rf;
-	if ((r > 0.5) || (g > 0.5) || (b > 0.5))
-		rf = 0.1;
-	else
-		rf = 0.9;
-	
-	/* offset font for effect option */	
-	float or, og, ob;
-	int fc = 0;
-	if (strncmp(kfont, "yes", 3) == 0) {
-		or = (r1 + r2) / 2;
-		og = (g1 + g2) /2 ;
-		ob = (b1 + b2) / 2;
-		fc = 1;
-	}
-	
 	cairo_surface_t *cs;
 
 	if (strcmp(form, "svg") == 0) {
@@ -259,79 +229,107 @@ static void paint_img (const char *label,
 		cairo_fill(c);
 	}
 	
-	/* font */
-	PangoLayout *layout;
-	PangoFontDescription *font_description;
-	
-	font_description = pango_font_description_new ();
-	pango_font_description_set_family (font_description, font);
-	pango_font_description_set_style (font_description, styleness ); /*PANGO_STYLE_NORMAL = 0, PANGO_STYLE_OBLIQUE = 1*/
-	pango_font_description_set_weight (font_description, boldness); /*PANGO_WEIGHT_NORMAL = 400, PANGO_WEIGHT_BOLD = 700*/
-	pango_font_description_set_absolute_size (font_description, f_size * PANGO_SCALE);
-	layout = pango_cairo_create_layout (c);
-	pango_layout_set_font_description (layout, font_description);
-	pango_layout_set_width (layout, 9 * wdth / 20 * PANGO_SCALE);
-	pango_layout_set_alignment (layout, align); /*PANGO_ALIGN_LEFT, PANGO_ALIGN_CENTER, PANGO_ALIGN_RIGHT)*/
-	pango_layout_set_wrap (layout, PANGO_WRAP_WORD);
-	pango_layout_set_text (layout, label, -1);
-	
 	/* icon and position */
 	if (eicon != NULL) {
 		glob.image = cairo_image_surface_create_from_png(icon);
 		cairo_set_source_surface(c, glob.image, icon_x, icon_y);
 		cairo_paint(c);
 	}
-	/* position of text */
-	int xposi, yposi;
-	if (jposi != NULL) {	
-		char prex[8];
-		char prey[8];
-		int font_pos = sscanf(jposi, "%s %s", prex, prey);
-		if (font_pos < 2) {
-			fprintf(stderr,"ERROR: x and y positions are required\n");
+	
+	if (label) {
+		int msg_len = strlen(label);
+		if (msg_len > 36) {
+			fprintf(stderr,"\"%s\" is too long!\n", label);
 			exit (EXIT_FAILURE);
 		}
-		if (font_pos > 2) {
-			fprintf(stderr,"ERROR: too many args\n");
-			exit (EXIT_FAILURE);
-		}
-		xposi = atoi(prex);
-		yposi = atoi(prey);
-	} else { /* fallback */
-		xposi = wdth / 2;
-		yposi = 3 * hght / 7;
-	}
-	 /* font effect */
-	cairo_move_to(c, xposi , 1 * yposi);
-	if (fontcol == 1)
-		cairo_set_source_rgba(c, rf, rf, rf, 0.6);
-	else
-		cairo_set_source_rgba(c, rf, rf, rf, 0.55);
+		/* font color */
+		float rf;
+		if ((r > 0.5) || (g > 0.5) || (b > 0.5))
+			rf = 0.1;
+		else
+			rf = 0.9;
 		
-	pango_cairo_show_layout (c, layout);
-	
-	
-	if (fc == 1) {
-		float fz = (float)f_size;
-		fz = f_size / 30; /* 30 default font size*/
-		cairo_move_to(c, xposi - (0.75 * fz) , (1 * yposi) - (0.6 * fz));
-		cairo_set_source_rgba(c, or, og, ob, 0.65);
+		/* offset font for effect option */	
+		float or, og, ob;
+		int fc = 0;
+		if (strncmp(kfont, "yes", 3) == 0) {
+			or = (r1 + r2) / 2;
+			og = (g1 + g2) /2 ;
+			ob = (b1 + b2) / 2;
+			fc = 1;
+		}
+		/*font style*/
+		int boldness; int styleness;
+		if (strncmp(style, "b", 1) == 0) { boldness = PANGO_WEIGHT_BOLD; styleness = PANGO_STYLE_NORMAL;}
+		else if (strncmp(style, "i", 1) == 0) { boldness = PANGO_WEIGHT_NORMAL; styleness = PANGO_STYLE_OBLIQUE;}
+		else if (strncmp(style, "o", 1) == 0) { boldness = PANGO_WEIGHT_BOLD; styleness = PANGO_STYLE_OBLIQUE;}
+		else { boldness = PANGO_WEIGHT_NORMAL; styleness = PANGO_STYLE_NORMAL;} /*catch garbage and default to 'normal'*/
+		/* font */
+		PangoLayout *layout;
+		PangoFontDescription *font_description;
+		
+		font_description = pango_font_description_new ();
+		pango_font_description_set_family (font_description, font);
+		pango_font_description_set_style (font_description, styleness ); /*PANGO_STYLE_NORMAL = 0, PANGO_STYLE_OBLIQUE = 1*/
+		pango_font_description_set_weight (font_description, boldness); /*PANGO_WEIGHT_NORMAL = 400, PANGO_WEIGHT_BOLD = 700*/
+		pango_font_description_set_absolute_size (font_description, f_size * PANGO_SCALE);
+		layout = pango_cairo_create_layout (c);
+		pango_layout_set_font_description (layout, font_description);
+		pango_layout_set_width (layout, 9 * wdth / 20 * PANGO_SCALE);
+		pango_layout_set_alignment (layout, align); /*PANGO_ALIGN_LEFT, PANGO_ALIGN_CENTER, PANGO_ALIGN_RIGHT)*/
+		pango_layout_set_wrap (layout, PANGO_WRAP_WORD);
+		pango_layout_set_text (layout, label, -1);
+
+		/* position of text */
+		int xposi, yposi;
+		if (jposi != NULL) {	
+			char prex[8];
+			char prey[8];
+			int font_pos = sscanf(jposi, "%s %s", prex, prey);
+			if (font_pos < 2) {
+				fprintf(stderr,"ERROR: x and y positions are required\n");
+				exit (EXIT_FAILURE);
+			}
+			if (font_pos > 2) {
+				fprintf(stderr,"ERROR: too many args\n");
+				exit (EXIT_FAILURE);
+			}
+			xposi = atoi(prex);
+			yposi = atoi(prey);
+		} else { /* fallback */
+			xposi = wdth / 2;
+			yposi = 3 * hght / 7;
+		}
+		 /* font effect */
+		cairo_move_to(c, xposi , 1 * yposi);
+		if (fontcol == 1)
+			cairo_set_source_rgba(c, rf, rf, rf, 0.6);
+		else
+			cairo_set_source_rgba(c, rf, rf, rf, 0.55);
+			
 		pango_cairo_show_layout (c, layout);
+
+		if (fc == 1) {
+			float fz = (float)f_size;
+			fz = f_size / 30; /* 30 default font size*/
+			cairo_move_to(c, xposi - (0.75 * fz) , (1 * yposi) - (0.6 * fz));
+			cairo_set_source_rgba(c, or, og, ob, 0.65);
+			pango_cairo_show_layout (c, layout);
+			g_object_unref (layout);
+			pango_font_description_free (font_description);
+		}
 	}
+
 	cairo_status_t res = cairo_surface_status(cs);
 	const char *ret;
 	ret = cairo_status_to_string (res);
 	if (res != CAIRO_STATUS_SUCCESS) {
-		g_object_unref (layout);
-		pango_font_description_free (font_description);
 		cairo_surface_destroy(cs);
 		cairo_destroy(c);
 		fprintf(stderr, "Cairo : %s\n", ret);
 		exit (EXIT_FAILURE);
 	}
 	/* cleanup */
-	g_object_unref (layout);
-	pango_font_description_free (font_description);
 	if (strcmp(form, "png") == 0) {
 		cairo_surface_write_to_png (cs, destimg);
 	}
@@ -351,7 +349,7 @@ int main(int argc, char **argv) {
 	}
 	int hflag = 0;
 	int vflag = 0;
-	char *lvalue = "hello wallpaper!"; /* the cli string that appears in image */
+	char *lvalue = NULL; /* the cli string that appears in image */
 	char *nvalue = "foo"; /* image name */
 	char *fvalue = "Sans"; /* font */
 	char *pvalue = "svg"; /* default */
