@@ -28,7 +28,7 @@
 #include <pango/pangocairo.h>
 
 #define PROG "mkwallpaper"
-#define THIS_VERSION "0.14"
+#define THIS_VERSION "0.15"
 
 void usage(){
 	printf("%s-%s\n\n", PROG , THIS_VERSION);
@@ -49,6 +49,7 @@ void usage(){
 	printf("\t-w [string] : '/path/to/background.png' - embed a png wall at pos 0,0\n\t(optional)\n");
 	printf("\t Requires original dimensions of incoming png image for '-x' and '-y'\n");
 	printf("\t-j [x y] : font position in px\n");
+	printf("\t-c centre font on image\n");
 	printf("\t-z [\"float float float\"] floating point RGB, quoted,\n"
 					"\tspace delimited values for colour\n"
 					"\t(mandatory!) eg: -z \"0.1 0.2 0.3\"\n");
