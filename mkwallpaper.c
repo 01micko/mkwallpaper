@@ -34,32 +34,31 @@ void usage(){
 	printf("%s-%s\n\n", PROG , THIS_VERSION);
 	printf("\tGenerate SVG or PNG Linux wallpapers. SVG is default.\n\n");
 	printf("Usage :\n");
-	printf("%s [-l,-n,-f,-p,-s,-x,-y,-r,-d,-j,-k,-z,-o,-a,-b,-h,-e,-w]\n", PROG);
+	printf("%s [-l,-n,-f,-p,-s,-x,-y,-r,-d,-c,-j,-k,-g,-z,-o,-a,-b,-h,-e,-w]\n", PROG);
 	printf("\t-n [string] image file name\n");
-	printf("\t-l [string] label for an image, up to 36 chars\t(optional)\n");
-	printf("\t-f [string] a TTF font family\n");
-	printf("\t-i [\"0|1|2\"] integer from 0 - 2 to align text left, centre or right\n");
-	printf("\t-p [\"png|svg\"] \"png\" or \"svg\" format\n");
+	printf("\t-l [string] label for an image, up to 36 chars, quoted\t(optional)\n");
+	printf("\t-f [string] a TTF font family; quoted if it has spaces\n");
+	printf("\t-z [\"float float float\"] floating point RGB, quoted,\n"
+					"\tspace delimited values for colour\n"
+					"\teg: -z \"0.1 0.2 0.3\"\n");
+	printf("\t-p save file as \"png\". \"svg\" format is the default\n");
 	printf("\t-x [int] width of image in pixels\n");
 	printf("\t-y [int] height of image in pixels\n");
 	printf("\t-s [int] font size in pixels\n");
-	printf("\t-k \"yes\" : embossed effect on font\n");
-	printf("\t-g \"yes\" : background gradient (default). \"no\" to turn off\n");
-	printf("\t-e [string] : '/path/to/icon.png x y' - embed a png image at position\n\t(optional)\n");
-	printf("\t-w [string] : '/path/to/background.png' - embed a png wall at pos 0,0\n\t(optional)\n");
-	printf("\t Requires original dimensions of incoming png image for '-x' and '-y'\n");
-	printf("\t-j [x y] : font position in px\n");
-	printf("\t-c centre font on image\n");
-	printf("\t-z [\"float float float\"] floating point RGB, quoted,\n"
-					"\tspace delimited values for colour\n"
-					"\t(mandatory!) eg: -z \"0.1 0.2 0.3\"\n");
+	printf("\t-k add embossed effect on font\n");
+	printf("\t-g turn off background gradient (default is on)\n");
+	printf("\t-e [string] : '/path/to/icon.png x y' - embed a png image at position\n\t\"x y\"(optional)\n");
+	printf("\t-w [string] : '/path/to/background.png' - embed a png wall at pos 0,0\n\t(optional). Requires");
+	printf(" original dimensions of incoming png image for\n\toptions '-x' and '-y'; (overrides \"-z\")\n");
+	printf("\t-c : centre font on image\n");
+	printf("\t-j [x y] : font position in px; overrides \"-c\"\n");
 	printf("\t-o [float] offset: floating point value from 0.0 to 1.0\n"
 								"\tfor the gradient offset\n");
 	printf("\t-a [int] angle: integer value from 0 to 20 for the gradient angle\n");
 	printf("\t-d [/path/to/directory] destination directory: (default: $HOME)\n");
 	printf("\t-b [string] font-style: accepted values are \"n\" (normal) [the default],\n"
 					"\t\"b\" (bold), \"i\" (italic), \"o\" (bold-italic).\n");
-	printf("\t-u \"yes\" : use transparent background (not good for wallpapers)\n");
+	printf("\t-u use transparent background (overrides \"-z\"; not good for wallpapers)\n");
 	printf("\t-h : show this help and exit.\n");
 	printf("\t-v : show version and exit.\n");
 	exit (EXIT_SUCCESS);
@@ -91,23 +90,22 @@ static const char *get_user_out_file(char *destination){
 static void paint_img (const char *label,
 						const char *name,
 						const char *font,
-						const char *form,
-						const int wdth,
+						int pflag,
+						int wdth,
 						int hght,
 						const char *fp_color,
 						int f_size,
 						double offset,
 						int angle,
-						const char *kfont,
-						const char *grad,
+						int kfont,
+						int grad,
 						char *jposi,
 						int fontcol,
 						char *dest,
-						int align,
 						char *style,
 						char *eicon,
 						char *wall,
-						char *trans,
+						int trans,
 						int centred) {
 	
 	char icon[PATH_MAX];
@@ -144,10 +142,6 @@ static void paint_img (const char *label,
 	
 	char destimg[PATH_MAX];
 	
-	if ((align < 0) || (align > 2))
-		align = 0; /* counter silly input */
-	if (!fp_color) exit (EXIT_FAILURE);
-	
 	/* error check angle/offset */
 	if ((angle < 0) || (angle > 20)) {
 		fprintf(stderr, "%d is out of range. Must be 0 - 20 inclusive\n", angle);
@@ -182,7 +176,7 @@ static void paint_img (const char *label,
 	}
 	/* gradient */
 	float r1, g1, b1, r2, g2, b2;
-	if (strncmp(grad, "yes", 3) == 0) {
+	if (grad == 0) {
 		r1 = r; g1 = g; b1 = b;
 		if ((r > 0.701) || (g > 0.701) || (b > 0.701)) {
 			r2 = r + 0.3;
@@ -199,10 +193,9 @@ static void paint_img (const char *label,
 	
 	cairo_surface_t *cs;
 
-	if (strcmp(form, "svg") == 0) {
+	if (pflag == 0) {
 		snprintf(destimg, sizeof(destimg), "%s/%s.svg", get_user_out_file(dest), name);
 		cs = cairo_svg_surface_create(destimg, wdth, hght);
-
 	} else {
 		cs = cairo_image_surface_create
 							(CAIRO_FORMAT_ARGB32, wdth, hght);
@@ -217,7 +210,7 @@ static void paint_img (const char *label,
 		glob.background = cairo_image_surface_create_from_png(wall);
 		cairo_set_source_surface(c, glob.background, 0, 0);
 		cairo_paint(c);
-	} else if (strncmp(trans, "yes", 3) == 0) {
+	} else if (trans == 1) {
 		cairo_set_source_rgba(c, 0, 0, 0, 0);
 		cairo_rectangle(c, 0.0, 0.0, wdth, hght);
 		cairo_fill(c);
@@ -254,7 +247,7 @@ static void paint_img (const char *label,
 		/* offset font for effect option */	
 		float or, og, ob;
 		int fc = 0;
-		if (strncmp(kfont, "yes", 3) == 0) {
+		if (kfont == 1) {
 			or = (r1 + r2) / 2;
 			og = (g1 + g2) /2 ;
 			ob = (b1 + b2) / 2;
@@ -278,7 +271,6 @@ static void paint_img (const char *label,
 		layout = pango_cairo_create_layout (c);
 		pango_layout_set_font_description (layout, font_description);
 		pango_layout_set_width (layout, 9 * wdth / 20 * PANGO_SCALE);
-		pango_layout_set_alignment (layout, align); /*PANGO_ALIGN_LEFT, PANGO_ALIGN_CENTER, PANGO_ALIGN_RIGHT)*/
 		pango_layout_set_wrap (layout, PANGO_WRAP_WORD);
 		pango_layout_set_text (layout, label, -1);
 		
@@ -344,7 +336,7 @@ static void paint_img (const char *label,
 		exit (EXIT_FAILURE);
 	}
 	/* cleanup */
-	if (strcmp(form, "png") == 0) {
+	if (pflag == 1) {
 		cairo_surface_write_to_png (cs, destimg);
 	}
 	if (eicon != NULL)
@@ -366,12 +358,9 @@ int main(int argc, char **argv) {
 	char *lvalue = NULL; /* the cli string that appears in image */
 	char *nvalue = "foo"; /* image name */
 	char *fvalue = "Sans"; /* font */
-	char *pvalue = "svg"; /* default */
 	char *zvalue = NULL; /* fp colour */
 	char *evalue = NULL; /* embedded icon */
 	char *wvalue = NULL; /* embedded background */
-	char *kvalue = "no";
-	char *grvalue = "yes";
 	char *jvalue = NULL;
 	int gvalue = 0;
 	char *dvalue = getenv("HOME");
@@ -379,12 +368,14 @@ int main(int argc, char **argv) {
 	int avalue = 10;
 	int width = 200; int height = 60;
 	int font_size = 30;
-	unsigned int ivalue = 0;
 	char *bvalue = "n";
-	char *uvalue = "no";
+	int uflag = 0; /* transparent bg */
 	int cflag = 0; /* centred text */
+	int pflag = 0; /* save as png */
+	int kflag = 0; /* embossed effect */
+	int grflag = 0; /* gradient */
 	int c;
-	while ((c = getopt (argc, argv, "l:n:f:p:x:y:d:z:o:a:i:k:g:j:s:b:e:w:u:chv")) != -1) {
+	while ((c = getopt (argc, argv, "l:n:f:x:y:d:z:o:a:j:s:b:e:w:ugkpchv")) != -1) {
 		switch (c)
 		{
 			case 'l':
@@ -395,9 +386,6 @@ int main(int argc, char **argv) {
 				break;
 			case 'f':
 				fvalue = optarg;
-				break;
-			case 'p':
-				pvalue = optarg;
 				break;
 			case 'x':
 				width = atoi(optarg);
@@ -414,17 +402,14 @@ int main(int argc, char **argv) {
 			case 'a':
 				avalue = atoi(optarg);
 				break;
-			case 'i':
-				ivalue = atoi(optarg);
-				break;
 			case 'd':
 				dvalue = optarg;
 				break;
-			case 'k':
-				kvalue = optarg;
+			case 'p':
+				pflag = 1;
 				break;
-			case 'g':
-				grvalue = optarg;
+			case 'k':
+				kflag = 1;
 				break;
 			case 'j':
 				jvalue = optarg;
@@ -443,7 +428,10 @@ int main(int argc, char **argv) {
 				gvalue = 1;
 				break;
 			case 'u':
-				uvalue = optarg;
+				uflag = 1;
+				break;
+			case 'g':
+				grflag = 1;
 				break;
 			case 'c':
 				cflag = 1;
@@ -460,9 +448,9 @@ int main(int argc, char **argv) {
 				usage();
 		}
 	}
-	paint_img(lvalue, nvalue, fvalue, pvalue,
+	paint_img(lvalue, nvalue, fvalue, pflag,
 					width, height, zvalue, font_size, ovalue, avalue,
-					 kvalue, grvalue, jvalue, gvalue, dvalue, ivalue, bvalue, evalue, wvalue, uvalue, cflag);
+					 kflag, grflag, jvalue, gvalue, dvalue, bvalue, evalue, wvalue, uflag, cflag);
 	return 0;
 }
 
