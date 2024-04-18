@@ -106,7 +106,8 @@ static void paint_img (const char *label,
 						char *style,
 						char *eicon,
 						char *wall,
-						char *trans) {
+						char *trans,
+						int centred) {
 	
 	char icon[PATH_MAX];
 	char icon_pre[PATH_MAX];
@@ -279,6 +280,7 @@ static void paint_img (const char *label,
 		pango_layout_set_alignment (layout, align); /*PANGO_ALIGN_LEFT, PANGO_ALIGN_CENTER, PANGO_ALIGN_RIGHT)*/
 		pango_layout_set_wrap (layout, PANGO_WRAP_WORD);
 		pango_layout_set_text (layout, label, -1);
+		
 
 		/* position of text */
 		int xposi, yposi;
@@ -296,6 +298,17 @@ static void paint_img (const char *label,
 			}
 			xposi = atoi(prex);
 			yposi = atoi(prey);
+		} else if ( centred == 1) {
+			int wrect, hrect;
+			PangoRectangle rect = { 0 };
+			pango_layout_get_extents(layout, NULL, &rect);
+			pango_extents_to_pixels(&rect, NULL);
+			wrect = rect.width;
+			wrect = ((wrect) < (wdth)) ? (wrect) : (wdth);
+			hrect = rect.height;
+			pango_layout_set_width(layout, wrect * PANGO_SCALE);
+			xposi = (wdth / 2) - (wrect / 2);
+			yposi = (hght / 2) - (hrect / 2);
 		} else { /* fallback */
 			xposi = wdth / 2;
 			yposi = 3 * hght / 7;
@@ -368,8 +381,9 @@ int main(int argc, char **argv) {
 	unsigned int ivalue = 0;
 	char *bvalue = "n";
 	char *uvalue = "no";
+	int cflag = 0; /* centred text */
 	int c;
-	while ((c = getopt (argc, argv, "l:n:f:p:x:y:d:z:o:a:i:k:g:j:s:b:e:w:u:hv")) != -1) {
+	while ((c = getopt (argc, argv, "l:n:f:p:x:y:d:z:o:a:i:k:g:j:s:b:e:w:u:chv")) != -1) {
 		switch (c)
 		{
 			case 'l':
@@ -430,6 +444,9 @@ int main(int argc, char **argv) {
 			case 'u':
 				uvalue = optarg;
 				break;
+			case 'c':
+				cflag = 1;
+				break;
 			case 'h':
 				hflag = 1;
 				if (hflag == 1) usage();
@@ -444,7 +461,7 @@ int main(int argc, char **argv) {
 	}
 	paint_img(lvalue, nvalue, fvalue, pvalue,
 					width, height, zvalue, font_size, ovalue, avalue,
-					 kvalue, grvalue, jvalue, gvalue, dvalue, ivalue, bvalue, evalue, wvalue, uvalue);
+					 kvalue, grvalue, jvalue, gvalue, dvalue, ivalue, bvalue, evalue, wvalue, uvalue, cflag);
 	return 0;
 }
 
