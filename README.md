@@ -18,7 +18,7 @@ hundred of images.
 ```
 make
 # optionally
-make install # installs to /usr/bin
+make install # installs to /usr/local/bin
 ```
 
 ## bugs
