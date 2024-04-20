@@ -47,10 +47,10 @@ void usage(){
 	printf("\t-s [int] font size in pixels\n");
 	printf("\t-k add embossed effect on font\n");
 	printf("\t-g turn off background gradient (default is on)\n");
-	printf("\t-e [string] : '/path/to/icon.png x y' - embed a png image at position\n\t\"x y\"(optional)\n");
+	printf("\t-e [string] : '/path/to/icon.png x y' - embed a png image at position\n\t\"x y\"(optional) or use \"-c\" option to centre\n");
 	printf("\t-w [string] : '/path/to/background.png' - embed a png wall at pos 0,0\n\t(optional). Requires");
 	printf(" original dimensions of incoming png image for\n\toptions '-x' and '-y'; (overrides \"-z\")\n");
-	printf("\t-c : centre font on image\n");
+	printf("\t-c : centre font and/or icon on image\n");
 	printf("\t-j [x y] : font position in px; overrides \"-c\"\n");
 	printf("\t-o [float] offset: floating point value from 0.0 to 1.0\n"
 								"\tfor the gradient offset\n");
@@ -115,13 +115,18 @@ static void paint_img (const char *label,
 	int icon_x, icon_y;
 	/* icon */
 	if (eicon != NULL) {
-		int icon_res = sscanf(eicon, "%s %s %s", icon_pre, posx, posy);
-		if (icon_res < 3) {
-			fprintf(stderr,"ERROR: path, x and y positions are required\n");
-			exit (EXIT_FAILURE);
+		int icon_res;
+		if (centred  == 0) {	
+			icon_res = sscanf(eicon, "%s %s %s", icon_pre, posx, posy);
+			if (icon_res < 3) {
+				fprintf(stderr,"ERROR: path, x and y positions are required or use \"-c\" option\n");
+				exit (EXIT_FAILURE);
+			}
+		} else {
+			icon_res = sscanf(eicon, "%s 0 0", icon_pre);
 		}
 		if (icon_res > 3) {
-			fprintf(stderr,"ERROR: path spaces are not allowed\n");
+			fprintf(stderr,"ERROR: too many arguments\n");
 			exit (EXIT_FAILURE);
 		}
 		snprintf(icon, sizeof(icon), "%s", icon_pre);
@@ -129,9 +134,10 @@ static void paint_img (const char *label,
 			fprintf(stderr, "Failed to access icon %s\n", icon);
 			exit (EXIT_FAILURE);
 		}
-		icon_x = atoi(posx);
-		icon_y = atoi(posy);
+			icon_x = atoi(posx);
+			icon_y = atoi(posy);
 	}
+
 	/* background */
 	if (wall != NULL) {
 		if (access(wall, R_OK) == -1) {
@@ -223,10 +229,18 @@ static void paint_img (const char *label,
 		cairo_set_source(c, linear);
 		cairo_fill(c);
 	}
-	
 	/* icon and position */
 	if (eicon != NULL) {
 		glob.image = cairo_image_surface_create_from_png(icon);
+		int ww = cairo_image_surface_get_width(glob.image);
+		int hh = cairo_image_surface_get_height(glob.image);
+		if (((centred == 1) && (!label)) || ((centred == 1) && (jposi))) {
+			icon_x = (wdth / 2) - (ww / 2);
+			icon_y = (hght / 2) - (hh / 2);
+		} else if ((centred == 1) && (label)){
+			icon_x = (wdth / 2) - (ww / 2);
+			icon_y = (hght / 2) - hh;			
+		}
 		cairo_set_source_surface(c, glob.image, icon_x, icon_y);
 		cairo_paint(c);
 	}
@@ -291,7 +305,7 @@ static void paint_img (const char *label,
 			}
 			xposi = atoi(prex);
 			yposi = atoi(prey);
-		} else if ( centred == 1) {
+		} else if (centred == 1) {
 			int wrect, hrect;
 			PangoRectangle rect = { 0 };
 			pango_layout_get_extents(layout, NULL, &rect);
@@ -300,8 +314,13 @@ static void paint_img (const char *label,
 			wrect = ((wrect) < (wdth)) ? (wrect) : (wdth);
 			hrect = rect.height;
 			pango_layout_set_width(layout, wrect * PANGO_SCALE);
-			xposi = (wdth / 2) - (wrect / 2);
-			yposi = (hght / 2) - (hrect / 2);
+			if (!eicon) {
+				xposi = (wdth / 2) - (wrect / 2);
+				yposi = (hght / 2) - (hrect / 2);
+			} else {
+				xposi = (wdth / 2) - (wrect / 2);
+				yposi = (hght / 2) + 10;
+			}
 		} else { /* fallback */
 			xposi = wdth / 2;
 			yposi = 3 * hght / 7;
