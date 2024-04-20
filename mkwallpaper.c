@@ -28,7 +28,7 @@
 #include <pango/pangocairo.h>
 
 #define PROG "mkwallpaper"
-#define THIS_VERSION "0.15"
+#define THIS_VERSION "0.16"
 
 void usage(){
 	printf("%s-%s\n\n", PROG , THIS_VERSION);
