@@ -16,9 +16,10 @@ hundred of images.
 ## build
 
 ```
-make
+meson setup build
+meson compile -C build
 # optionally
-make install # installs to /usr/local/bin
+meson install -C build # installs to /usr/local/bin
 ```
 
 ## bugs
