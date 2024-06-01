@@ -46,7 +46,9 @@ void usage(){
 	printf("\t-y [int] height of image in pixels\n");
 	printf("\t-s [int] font size in pixels\n");
 	printf("\t-k add embossed effect on font\n");
-	printf("\t-g turn off background gradient (default is on)\n");
+	printf("\t-g turn on background linear gradient (default is off)\n");
+	printf("\t-r turn on background radial gradient (default is off)\n");
+	printf("\t-q [x y] : radial gradient position in px; requires \"-r\"\n");
 	printf("\t-e [string] : '/path/to/icon.png x y' - embed a png image at position\n\t\"x y\"(optional) or use \"-c\" option to centre\n");
 	printf("\t-w [string] : '/path/to/background.png' - embed a png wall at pos 0,0\n\t(optional). Requires");
 	printf(" original dimensions of incoming png image for\n\toptions '-x' and '-y'; (overrides \"-z\")\n");
@@ -98,7 +100,9 @@ static void paint_img (const char *label,
 						double offset,
 						int angle,
 						int kfont,
-						int grad,
+						int gradl,
+						int gradr,
+						char *qposi,
 						char *jposi,
 						int fontcol,
 						char *dest,
@@ -180,9 +184,9 @@ static void paint_img (const char *label,
 		fprintf(stderr, "Color values are out of range\n");
 		exit (EXIT_FAILURE);
 	}
-	/* gradient */
+	/* gradient colours: linear / radial */
 	float r1, g1, b1, r2, g2, b2;
-	if (grad == 0) {
+	if ((gradl == 0) || (gradr == 0)) {
 		r1 = r; g1 = g; b1 = b;
 		if ((r > 0.701) || (g > 0.701) || (b > 0.701)) {
 			r2 = r + 0.3;
@@ -209,6 +213,7 @@ static void paint_img (const char *label,
 	}
 	cairo_t *c;
 	c = cairo_create(cs);
+	cairo_pattern_t *linear, *radial;
 	
 	/* background and position */
 	if (wall != NULL) {
@@ -220,13 +225,45 @@ static void paint_img (const char *label,
 		cairo_set_source_rgba(c, 0, 0, 0, 0);
 		cairo_rectangle(c, 0.0, 0.0, wdth, hght);
 		cairo_fill(c);
-	} else {
+	} else if (gradl == 0) {
 		cairo_rectangle(c, 0.0, 0.0, wdth, hght);
-		cairo_pattern_t *linear = cairo_pattern_create_linear(angle * wdth / 20, 0, wdth / 2, hght);
+		linear = cairo_pattern_create_linear(angle * wdth / 20, 0, wdth / 2, hght);
 		cairo_pattern_add_color_stop_rgb(linear, 0.1, r1, g1, b1);
 		cairo_pattern_add_color_stop_rgb(linear, offset, r2, g2, b2);
 		cairo_pattern_add_color_stop_rgb(linear, 0.9, r1, g1, b1);
 		cairo_set_source(c, linear);
+		cairo_fill(c);
+	} else if (gradr == 0) {
+		float qxposi = wdth / 2;
+		float qyposi = hght / 2;
+		if (qposi != NULL) {	
+			char prqx[8];
+			char prqy[8];
+			int rad_pos = sscanf(qposi, "%s %s", prqx, prqy);
+			if (rad_pos < 2) {
+				fprintf(stderr,"ERROR: x and y positions are required\n");
+				exit (EXIT_FAILURE);
+			}
+			if (rad_pos > 2) {
+				fprintf(stderr,"ERROR: too many args\n");
+				exit (EXIT_FAILURE);
+			}
+			qxposi = atof(prqx);
+			qyposi = atof(prqy);
+			if ((qxposi < 0) || (qyposi < 0) || (qxposi > wdth) || (qyposi > hght)) {
+				fprintf(stderr,"ERROR: x or y args out of range\n");
+				exit (EXIT_FAILURE);
+			}
+		}
+		cairo_rectangle(c, 0.0, 0.0, wdth, hght);
+		radial = cairo_pattern_create_radial(qxposi, qyposi, hght / angle, qxposi, qyposi, 0.0);
+		cairo_pattern_add_color_stop_rgb(radial, 1.0, r1, g1, b1);
+		cairo_pattern_add_color_stop_rgb(radial, 0.0, r2, g2, b2);
+		cairo_set_source(c, radial);
+		cairo_fill(c);
+	} else {
+		cairo_set_source_rgb(c, r, g, b);
+		cairo_rectangle(c, 0.0, 0.0, wdth, hght);
 		cairo_fill(c);
 	}
 	/* icon and position */
@@ -381,6 +418,7 @@ int main(int argc, char **argv) {
 	char *evalue = NULL; /* embedded icon */
 	char *wvalue = NULL; /* embedded background */
 	char *jvalue = NULL;
+	char *qvalue = NULL;
 	int gvalue = 0;
 	char *dvalue = getenv("HOME");
 	double ovalue = 0.65;
@@ -392,9 +430,10 @@ int main(int argc, char **argv) {
 	int cflag = 0; /* centred text */
 	int pflag = 0; /* save as png */
 	int kflag = 0; /* embossed effect */
-	int grflag = 0; /* gradient */
+	int grflag = 1; /* linear gradient */
+	int rflag = 1; /* radial gradient */
 	int c;
-	while ((c = getopt (argc, argv, "l:n:f:x:y:d:z:o:a:j:s:b:e:w:ugkpchv")) != -1) {
+	while ((c = getopt (argc, argv, "l:n:f:x:y:d:z:o:a:q:j:s:b:e:w:ugrkpchv")) != -1) {
 		switch (c)
 		{
 			case 'l':
@@ -450,7 +489,13 @@ int main(int argc, char **argv) {
 				uflag = 1;
 				break;
 			case 'g':
-				grflag = 1;
+				grflag = 0;
+				break;
+			case 'r':
+				rflag = 0;
+				break;
+			case 'q':
+				qvalue = optarg;
 				break;
 			case 'c':
 				cflag = 1;
@@ -469,7 +514,7 @@ int main(int argc, char **argv) {
 	}
 	paint_img(lvalue, nvalue, fvalue, pflag,
 					width, height, zvalue, font_size, ovalue, avalue,
-					 kflag, grflag, jvalue, gvalue, dvalue, bvalue, evalue, wvalue, uflag, cflag);
+					 kflag, grflag, rflag, qvalue, jvalue, gvalue, dvalue, bvalue, evalue, wvalue, uflag, cflag);
 	return 0;
 }
 
