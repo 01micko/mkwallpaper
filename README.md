@@ -3,7 +3,7 @@
 cli wallpaper generator using pangocairo
 
 This allows generating flat or gradient images in `svg` or
-`png` format designed to be used as wallpappers otherwise
+`png` format designed to be used as wallpapers otherwise
 know as desktop backgrounds.
 
 It supports adding some text to the image and an optional icon.
