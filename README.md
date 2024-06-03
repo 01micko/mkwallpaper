@@ -18,9 +18,16 @@ hundred of images.
 ```
 meson setup build
 meson compile -C build
-# optionally
-meson install -C build # installs to /usr/local/bin
+# optionally as root
+meson install -C build # installs to /usr/local/bin by default
 ```
+
+## colors
+
+As *cairo* is used as the backend for this program, which uses the 
+*sRGB* color space (see IEC 61966-2-1:1999), all floating-point
+arguments should be expressed on the CLI with a *period* (unicode
+char U+002E) as the decimal separator.
 
 ## bugs
 

@@ -46,7 +46,7 @@ or even overlay previously produced images in a loop if saving to
 
 *-z*
 
-	floating point RGB, quoted, space delimited values for colour ["float float float"] 
+	floating point RGB, quoted, space delimited values for colour ["double"] 
 
 *-p*
 
@@ -100,7 +100,7 @@ or even overlay previously produced images in a loop if saving to
 
 *-o*
 
-	gradient offset: floating point value from 0.0 to 1.0 [float]
+	gradient offset: floating point value from 0.0 to 1.0 [double]
 
 *-a*
 
@@ -118,6 +118,13 @@ or even overlay previously produced images in a loop if saving to
 *-u*
 
 	use transparent background (overrides "-z"; not good for wallpapers)
+
+# COLORS
+
+	As *cairo* is used as the backend for this program, which uses the 
+	*sRGB* color space (see IEC 61966-2-1:1999), all floating-point
+	arguments should be expressed on the CLI with a *period* (unicode
+	char U+002E) as the decimal separator.
 
 # AUTHOR
 
