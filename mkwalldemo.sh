@@ -40,13 +40,13 @@ exit_error() {
 # linear gradient
 _linear() {
     mkwallpaper -l $1 -n ${1}-l${2} -z "$3 $4 $5" -k -c -e $6 -x 1920 -y 1080 \
-        -s 80 -d $7 -g -a $8 -o $9 && return 0 || return 1
+        -s 80 -d $7 -g -a $8 -o $9 -t && return 0 || return 1
 }
 
 # radial gradient
 _radial() {
     mkwallpaper -l $1 -n ${1}-r${2} -z "$3 $4 $5" -k -c -e $6 -x 1920 -y 1080 \
-        -s 80 -d $7 -r -q "960 480" && return 0 || return 1
+        -s 80 -d $7 -a $8 -r -q "960 480" && return 0 || return 1
 }
 
 # download an icon
@@ -61,7 +61,7 @@ _grab_ico() {
 export -f exit_error _linear _radial _grab_ico _usage
 
 # main
-VER=0.1.0
+VER=0.1.1
 TEMP=$(mktemp -d /tmp/mkwallXXXX)
 trap "rm -rf $TEMP" EXIT
 
@@ -123,12 +123,13 @@ done
 # create radial
 y=0;
 while [[ $y -lt 5 ]]; do
+    ang=$((1 + $(($RANDOM % 10))))
     r="0.${RANDOM}"
     g="0.${RANDOM}"
     b="0.${RANDOM}"
-    _radial $NAME $y $r $g $b $ICOPATH ${HOME}/${NAME} \
+    _radial $NAME $y $r $g $b $ICOPATH ${HOME}/${NAME} $ang $off \
         || exit_error "Radial gradient wallpaper creation failed."
-    unset off ang r g b
+    unset ang r g b
     y=$(($y + 1))
 done
 

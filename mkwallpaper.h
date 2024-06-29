@@ -2,7 +2,7 @@
 #define __MKWALLPAPER_H
 
 #define PROG "mkwallpaper"
-#define THIS_VERSION "0.1.7"
+#define THIS_VERSION "0.1.8"
 
 struct { 
 	/* allows an icon */
@@ -34,6 +34,8 @@ static void paint_img (const char *label,
 						char *eicon,
 						char *wall,
 						int trans,
-						int centred);
+						int centred,
+						const char *sec_color,
+						int effect) {
 
 #endif /*__MKWALLPAPER_H*/

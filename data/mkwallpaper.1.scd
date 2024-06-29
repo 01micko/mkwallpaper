@@ -46,7 +46,14 @@ or even overlay previously produced images in a loop if saving to
 
 *-z*
 
-	floating point RGB, quoted, space delimited values for colour ["double"] 
+	floating point RGB, three quoted, space delimited values for colour ["double"]
+	Transparency is supported with optional fourth arge in quoted string.
+
+*-i*
+
+	floating point RGB, three quoted, space delimited values for optional
+	second colour ["double"]
+	Transparency is supported with optional fourth arge in quoted string.
 
 *-p*
 
@@ -94,6 +101,10 @@ or even overlay previously produced images in a loop if saving to
 
 	centre font and/or icon on background image [no arg]
 
+*-t*
+
+	Adds an extra color stop to the linear gradient
+
 *-j*
 
 	font position in px "x y"; overrides "-c" ["int int"]
@@ -105,6 +116,8 @@ or even overlay previously produced images in a loop if saving to
 *-a*
 
 	angle: integer value from 0 to 20 for the gradient angle [int]
+	If 21 is used a vertical gradient is produced.
+	If used for *-r* radial gradient it controls the radius of the blend. 
 
 *-d*
 
@@ -125,6 +138,12 @@ or even overlay previously produced images in a loop if saving to
 	*sRGB* color space (see IEC 61966-2-1:1999), all floating-point
 	arguments should be expressed on the CLI with a *period* (unicode
 	char U+002E) as the decimal separator.
+
+# TRANSPARENCY
+
+	If a fourth argument is added to *-z* or *-i* is added this will
+	make the resulting image transparent by that factor. The lowest in
+	either option is used.
 
 # AUTHOR
 
