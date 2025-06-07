@@ -1,7 +1,7 @@
 project(
   'mkwallpaper',
   'c',
-  version: '0.1.7',
+  version: '0.1.9',
   license: 'GPL-2.0-only',
   meson_version: '>=0.59.0',
   default_options: [
