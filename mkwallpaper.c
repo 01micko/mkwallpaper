@@ -13,7 +13,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 51 Franklin Street, Fifth Floor, Boston,
  * MA 02110-1301, USA.
- * (c)2015 - 2024 Michael Amadio. Gold Coast QLD, Australia 01micko@gmail.com
+ * (c)2015 - 2024 Michael Amadio. Gold Coast QLD, Australia 01micko@gmx.com
  */
  
  
@@ -28,7 +28,7 @@
 #include <pango/pangocairo.h>
 
 #define PROG "mkwallpaper"
-#define THIS_VERSION "0.16"
+#define THIS_VERSION "0.19"
 
 void usage(){
 	printf("%s-%s\n\n", PROG , THIS_VERSION);
@@ -47,7 +47,7 @@ void usage(){
 					"\teg: -i \"0.1 0.2 0.3\"\n"
 					"\t must be used with \"-z\"");
 	printf("\tOR [\"float float float float\"] with the last arg for transparency\n"
-			"\tApplies to either \"-z\" or \"-i\"");
+			"\tApplies to either \"-z\" or \"-i\"\n");
 	printf("\t-p save file as \"png\". \"svg\" format is the default\n");
 	printf("\t-x [int] width of image in pixels\n");
 	printf("\t-y [int] height of image in pixels\n");
@@ -65,7 +65,7 @@ void usage(){
 	printf("\t-o [float] offset: floating point value from 0.0 to 1.0\n"
 								"\tfor the gradient offset\n");
 	printf("\t-a [int] angle: integer value from 0 to 20 for the linear gradient angle\n"
-			"\tit also applies the radius in regard to radial gradients");
+			"\tit also applies the radius in regard to radial gradients\n");
 	printf("\t-d [/path/to/directory] destination directory: (default: $HOME)\n");
 	printf("\t-b [string] font-style: accepted values are \"n\" (normal) [the default],\n"
 					"\t\"b\" (bold), \"i\" (italic), \"o\" (bold-italic).\n");
@@ -254,8 +254,7 @@ static void paint_img (const char *label,
 		glob.background = cairo_image_surface_create_from_png(wall);
 		cairo_set_source_surface(c, glob.background, 0, 0);
 		cairo_paint(c);
-	}
-	if (trans == 1) {
+	} else if (trans == 1) {
 		cairo_set_source_rgba(c, 0, 0, 0, 0);
 		cairo_rectangle(c, 0.0, 0.0, wdth, hght);
 		cairo_fill(c);
